@@ -1,6 +1,10 @@
 const { createServer } = require('http')
 const { parse } = require('url')
 const next = require('next')
+let hmr = undefined
+try {
+  hmr = require('node-hmr')
+} catch (e) { }
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = 'localhost'
@@ -9,7 +13,7 @@ const app = next({ dev, hostname, port })
 const handle = app.getRequestHandler()
 
 app.prepare().then(() => {
-  createServer(async (req, res) => {
+  const server = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true)
 
@@ -19,7 +23,21 @@ app.prepare().then(() => {
       res.statusCode = 500
       res.end('internal server error')
     }
-  }).listen(port, (err) => {
+  })
+
+  const fn = () => {
+    try {
+      require('./handle')
+    } catch (e) {
+      console.error(e)
+    }
+  }
+  if (hmr)
+    hmr(fn)
+  else
+    fn()
+
+  server.listen(port, (err) => {
     if (err) throw err
     console.log(`> Ready on http://${hostname}:${port}`)
   })
