@@ -1,10 +1,6 @@
 const { createServer } = require('http')
 const { parse } = require('url')
 const next = require('next')
-let hmr = undefined
-try {
-  hmr = require('node-hmr')
-} catch (e) { }
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = 'localhost'
@@ -32,8 +28,10 @@ app.prepare().then(() => {
       console.error(e)
     }
   }
-  if (hmr)
-    hmr(fn)
+
+  // Use hmr only in development mode
+  if (dev)
+    require('node-hmr')(fn)
   else
     fn()
 
