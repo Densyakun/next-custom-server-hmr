@@ -8,6 +8,8 @@ const port = parseInt(process.env.PORT || '3000')
 const app = next({ dev, hostname, port })
 const handle = app.getRequestHandler()
 
+var handleFile = './handle.js'
+
 app.prepare().then(() => {
   const server = createServer(async (req, res) => {
     try {
@@ -22,17 +24,26 @@ app.prepare().then(() => {
   })
 
   const fn = () => {
-    try {
-      require('./handle')
-    } catch (e) {
-      console.error(e)
-    }
+    require(handleFile)
   }
 
   // Use hmr only in development mode
-  if (dev)
-    require('node-hmr')(fn)
-  else
+  if (dev) {
+    const path = require('path')
+    const hmr = require('node-hmr')
+
+    var watchDir = './'
+
+    hmr(() => {
+      try {
+        fn()
+      } catch (e) {
+        console.error(e)
+        const moduleId = path.resolve(watchDir, handleFile)
+        require.cache[moduleId] = { id: moduleId }
+      }
+    }, { watchDir: watchDir, watchFilePatterns: [handleFile] })
+  } else
     fn()
 
   server.listen(port, (err) => {
